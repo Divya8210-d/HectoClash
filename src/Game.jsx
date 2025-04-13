@@ -6,7 +6,12 @@ import {
   deleteDoc,
   doc,
   query,
-  where,runTransaction,updateDoc,increment,getDoc
+  where,
+  runTransaction,
+  updateDoc,
+  increment,
+  getDoc,
+  onSnapshot
 } from 'firebase/firestore';
 import { app } from './firebase';
 import { useNavigate } from 'react-router';
@@ -14,12 +19,10 @@ import { evaluate } from 'mathjs';
 
 const db = getFirestore(app);
 
-
 function findExpressionsFor100(digits) {
   const results = new Set();
   const operators = ['+', '-', '*', '/'];
 
-  // Step 1: Build all groupings of digits (e.g., ['2', '9', '53', '74'])
   function buildNumberCombos(index, current) {
     if (index === digits.length) return [current];
     const combos = [];
@@ -30,10 +33,8 @@ function findExpressionsFor100(digits) {
     return combos;
   }
 
-  // Step 2: Insert operators between numbers
   function insertOperators(nums) {
     const expressions = [];
-
     function backtrack(i, expr) {
       if (i === nums.length) {
         expressions.push(expr);
@@ -43,50 +44,38 @@ function findExpressionsFor100(digits) {
         backtrack(i + 1, `${expr}${op}${nums[i]}`);
       }
     }
-
     backtrack(1, nums[0]);
     return expressions;
   }
 
-  // Step 3: Add parentheses recursively
   function addParentheses(expr) {
     const tokens = expr.match(/\d+|[+\-*/]/g);
     if (!tokens || tokens.length < 3) return [expr];
-
     const memo = new Map();
-
     function generate(start, end) {
       const key = `${start},${end}`;
       if (memo.has(key)) return memo.get(key);
-
       if (start === end) return [tokens[start]];
-
       const res = [];
       for (let i = start + 1; i < end; i += 2) {
         const op = tokens[i];
         const leftParts = generate(start, i - 1);
         const rightParts = generate(i + 1, end);
-
         for (let l of leftParts) {
           for (let r of rightParts) {
             res.push(`(${l}${op}${r})`);
           }
         }
       }
-
       memo.set(key, res);
       return res;
     }
-
     return generate(0, tokens.length - 1);
   }
 
-  // Step 4: Full solution search
   const numberCombos = buildNumberCombos(0, []);
-
   for (let nums of numberCombos) {
     const exprs = insertOperators(nums);
-
     for (let expr of exprs) {
       const withParen = addParentheses(expr);
       for (let pExpr of withParen) {
@@ -95,16 +84,13 @@ function findExpressionsFor100(digits) {
           if (Math.abs(val - 100) < 1e-6) {
             results.add(pExpr);
           }
-        } catch {
-          // Skip invalid expressions
-        }
+        } catch {}
       }
     }
   }
 
   return results.size ? [...results] : ['No solution found'];
 }
-
 
 const Game = () => {
   const [user1, setUser1] = useState('');
@@ -144,43 +130,56 @@ const Game = () => {
     async function initializeGame() {
       const email = localStorage.getItem('loggeduser');
       const matchId = localStorage.getItem('matchid');
-  
       if (!email || !matchId) {
         alert("Missing match or user info");
         return;
       }
-  
+
       await display();
-  
+
       const matchRef = doc(db, 'match', matchId);
       const matchSnap = await getDoc(matchRef);
-  
+
       if (matchSnap.exists()) {
         const data = matchSnap.data();
         if (data.digits && data.digits.length === 6) {
           setDigits(data.digits);
           localStorage.setItem('gameDigits', JSON.stringify(data.digits));
-          console.log('📥 Synced digits from Firestore:', data.digits);
           return;
         }
       }
-  
-      // Generate new solvable digits
+
       let number = generateDigits();
       while (findExpressionsFor100(number)[0] === 'No solution found') {
         number = generateDigits();
       }
-  
-      console.log('✔ Solvable Digits:', number);
-      console.log('➡ Sample Solution:', findExpressionsFor100(number)[0]);
-  
-      // Update Firestore and localStorage
+
       await updateDoc(matchRef, { digits: number });
       localStorage.setItem('gameDigits', JSON.stringify(number));
       setDigits(number);
     }
-  
+
     initializeGame();
+  }, []);
+
+  // ✅ Real-time listener to detect when result is set
+  useEffect(() => {
+    const matchId = localStorage.getItem('matchid');
+    if (!matchId) return;
+
+    const resultRef = doc(db, 'results', matchId);
+
+    const unsubscribe = onSnapshot(resultRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data?.winnerId) {
+          localStorage.setItem('currentwinner', data.winnerId);
+          navigate('/result');
+        }
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   async function abort() {
@@ -194,26 +193,16 @@ const Game = () => {
       await deleteDoc(doc(db, 'match', Matchdoc1.docs[0].id));
     } else if (!Matchdoc2.empty) {
       await deleteDoc(doc(db, 'match', Matchdoc2.docs[0].id));
-    } else {
-      alert('Error ending match');
     }
 
     localStorage.removeItem('gameDigits');
     localStorage.removeItem('matchid');
-    const winner =localStorage.getItem("currentwinner")
+    const winner = localStorage.getItem("currentwinner");
     const result = query(collection(db, 'results'), where('winnerId', '==', winner));
-    
     const resultdoc = await getDocs(result);
     await deleteDoc(doc(db, 'results', resultdoc.docs[0].id));
     navigate('/');
   }
-
-  
-
-
-
-
-
 
   function check(e) {
     e.preventDefault();
@@ -229,88 +218,52 @@ const Game = () => {
     }
   }
 
+  async function submit() {
+    const matchId = localStorage.getItem('matchid');
+    const playerId = localStorage.getItem('loggeduser');
+    const resultRef = doc(db, "results", matchId);
 
+    try {
+      const result = await runTransaction(db, async (transaction) => {
+        const resultDoc = await transaction.get(resultRef);
 
-async function submit() {
-  const matchId = localStorage.getItem('matchid')
-const playerId = localStorage.getItem('loggeduser');
+        if (!resultDoc.exists()) {
+          transaction.set(resultRef, {
+            winnerId: playerId,
+            submittedAt: Date.now()
+          });
+          return { winner: true, winnerId: playerId };
+        } else {
+          return { winner: false, winnerId: resultDoc.data().winnerId };
+        }
+      });
 
-
-
-  const resultRef = doc(db, "results", matchId);
-
-  try {
-    const result = await runTransaction(db, async (transaction) => {
-      const resultDoc = await transaction.get(resultRef);
-      
-      if (!resultDoc.exists()) {
-        // No winner yet → you're the winner!
-        transaction.set(resultRef, {
-          winnerId: playerId,
-          submittedAt: Date.now()
+      if (result.winner) {
+        alert("You're the winner!");
+        localStorage.setItem("currentwinner", result.winnerId);
+        const userdoc = query(collection(db, 'users'), where('PlayerEmail', '==', result.winnerId));
+        const userdoc1 = await getDocs(userdoc);
+        const userRef = doc(db, "users", userdoc1.docs[0].id);
+        await updateDoc(userRef, {
+          Matchplayed: increment(1),
+          Totalpoint: increment(100),
+          Matchwon: increment(1)
         });
-        return { winner: true , winnerId: playerId };
+        setTimeout(() => abort(), 8000);
       } else {
-        // Someone already submitted
-        return { winner: false, winnerId: resultDoc.data().winnerId };
-      }
-    });
-
-    if (result.winner) {
-      alert("You're the winner!");
-      localStorage.setItem("currentwinner",result.winnerId)
-      const userdoc = query(collection(db, 'users'), where('PlayerEmail', '==',result.winnerId));
-      const userdoc1 = await getDocs(userdoc);
-      const userRef = doc(db, "users",userdoc1.docs[0].id);
-      if (!userdoc1.empty) {
-        console.log("Updating user:", userdoc1.docs[0].id);
-      } else {
-        console.error("User not found in users collection");
+        const userdoc = query(collection(db, 'users'), where('PlayerEmail', '==', result.winnerId));
+        const userdoc1 = await getDocs(userdoc);
+        const userRef = doc(db, "users", userdoc1.docs[0].id);
+        await updateDoc(userRef, {
+          Matchplayed: increment(1),
+          Matchlost: increment(1)
+        });
       }
 
-await updateDoc(userRef, {
-  Matchplayed:increment(1),
-  Totalpoint:increment(100),
-  Matchwon:increment(1)
-  
-});
-      
-setTimeout(()=>{abort()},8000)
-      navigate("/result")
-     
-    } 
-
-else{
-  const userdoc = query(collection(db, 'users'), where('PlayerEmail', '==',result.winnerId));
-  const userdoc1 = await getDocs(userdoc);
-  const userRef = doc(db, "users",userdoc1.docs[0].id);
-  if (!userdoc1.empty) {
-    console.log("Updating user:", userdoc1.docs[0].id);
-  } else {
-    console.error("User not found in users collection");
+    } catch (e) {
+      console.error("Transaction failed:", e);
+    }
   }
-  
-
-await updateDoc(userRef, {
-Matchplayed:increment(1),
-Matchlost:increment(1)
-
-});
-
-}
-
-
-
-  } catch (e) {
-    console.error("Transaction failed:", e);
-  }
-
-
-  
-}
-
-
-
 
   return (
     <div className="min-h-screen w-full bg-[#0F1638] overflow-x-hidden px-4 sm:px-6 pb-10">
@@ -364,14 +317,13 @@ Matchlost:increment(1)
           >
             Check
           </button>
-         
         </form>
         <button
-            onClick={submit}
-            className="bg-[#6EFE3B] text-black px-6 py-2 rounded-full font-semibold hover:opacity-80 mt-[15px] w-[120px] relative left-[170px]"
-          >
-            submit
-          </button>
+          onClick={submit}
+          className="bg-[#6EFE3B] text-black px-6 py-2 rounded-full font-semibold hover:opacity-80 mt-[15px] w-[120px] relative left-[170px]"
+        >
+          Submit
+        </button>
       </div>
     </div>
   );
