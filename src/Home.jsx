@@ -13,7 +13,7 @@ const auth = getAuth(app)
 const db = getFirestore(app);
 
 const Home = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   async function Play() {
     const email = localStorage.getItem("loggeduser");
@@ -34,19 +34,19 @@ const Home = () => {
           Email: you.docs[0].data().PlayerEmail
         });
 
-        // ✅ Start listening for match involving this player
-        const matchQuery = query(
-          collection(db, "match"),
-          where("Email1", "==", email)
-        );
+        // Listen for match where this player is either Email1 or Email2
+        const matchQuery = query(collection(db, "match"));
 
         const unsubscribe = onSnapshot(matchQuery, (snapshot) => {
-          snapshot.forEach((doc) => {
-            const matchData = doc.data();
-            if (matchData.Email2) {
-              localStorage.setItem("matchid", doc.id);
+          snapshot.forEach((docSnap) => {
+            const matchData = docSnap.data();
+            if (
+              (matchData.Email1 === email || matchData.Email2 === email) &&
+              matchData.Email1 && matchData.Email2
+            ) {
+              localStorage.setItem("matchid", docSnap.id);
               navigate("/game");
-              unsubscribe(); // Stop listening after match is found
+              unsubscribe();
             }
           });
         });
