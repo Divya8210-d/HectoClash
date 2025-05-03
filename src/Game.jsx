@@ -237,36 +237,32 @@ const Game = () => {
   function check(e) {
     e.preventDefault();
   
-    // Get digits from state (original digits given)
-    const originalDigits = [...digits.map(String)]; // convert to strings
+    const originalDigits = digits.map(String); // original digits as strings
+    const allAvailable = [...originalDigits];
   
-    // Remove all non-digit characters from the answer
-    const usedDigits = answer.replace(/[^0-9]/g, '').split('');
+    // Extract only the digit characters from the user's input
+    const digitChars = answer.replace(/[^0-9]/g, '');
   
-    // Make a copy of originalDigits to check against
-    const available = [...originalDigits];
-  
-    // Try removing each used digit from available
-    for (let d of usedDigits) {
-      const index = available.indexOf(d);
-      if (index === -1) {
-        alert("❌ You used digits not from the given set or reused digits.");
-        return;
-      }
-      available.splice(index, 1); // remove matched digit
-    }
-  
-    // If some digits were not used
-    if (available.length > 0) {
-      alert("❌ You must use all digits exactly once.");
+    // Early return if the number of digits doesn't match
+    if (digitChars.length !== allAvailable.length) {
+      alert("❌ You must use all the given digits exactly once.");
       return;
     }
   
-    // Evaluate the answer
+    // Create a sorted copy for easy comparison
+    const usedDigitsSorted = digitChars.split('').sort().join('');
+    const originalSorted = allAvailable.sort().join('');
+  
+    if (usedDigitsSorted !== originalSorted) {
+      alert("❌ You used digits not from the given set or reused digits.");
+      return;
+    }
+  
+    // Try to evaluate the expression
     try {
       const evalanswer = evaluate(answer);
       if (evalanswer == 100) {
-        alert('✅yes it is 100');
+        alert('✅ Yes! It is 100');
       } else {
         alert('❌ Try again');
       }
