@@ -126,19 +126,8 @@ if(checkeddoc.empty){
               </button>
             </form>
   
-            <div className="mt-6 flex items-center justify-center">
-              <div className="w-full h-px bg-gray-300"></div>
-              <span className="px-2 text-gray-500 text-2xl">OR</span>
-              <div className="w-full h-px bg-gray-300"></div>
-            </div>
-  
-            <button
-              
-              className="mt-4 w-full flex items-center justify-center gap-2 bg-white hover:bg-red-600 text-black py-2 rounded-3xl transition"
-            >
-              <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-              Continue with Google
-            </button>
+       
+      
           </div>
         </div>
       </div>

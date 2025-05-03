@@ -25,35 +25,63 @@ const Home = () => {
     }
 
   });
-
-
   async function Play() {
     const email = localStorage.getItem("loggeduser");
-    const querySnapshot = await getDocs(collection(db, "waiting"));
-    const q = query(collection(db, "users"), where("PlayerEmail", "==", email));
-    const you = await getDocs(q);
-
+  
     if (!email) {
-      alert("please login");
+      alert("Please login");
       return;
     }
-    if (!querySnapshot.empty&&you.docs[0].data().PlayerEmail==email) {
-      alert("You are already in waiting room please wait");
+  
+    const userQuery = query(collection(db, "users"), where("PlayerEmail", "==", email));
+    const userSnapshot = await getDocs(userQuery);
+  
+    if (userSnapshot.empty) {
+      alert("User not found in database");
       return;
     }
-
-
-    if (querySnapshot.empty||you.docs[0].data().PlayerEmail==email) {
+  
+    const userData = userSnapshot.docs[0].data();
+  
+    // Get current waiting list
+    const waitingSnapshot = await getDocs(collection(db, "waiting"));
+    const alreadyWaiting = waitingSnapshot.docs.some(doc => doc.data().Email === email);
+  
+    if (alreadyWaiting) {
+      alert("You are already in the waiting room. Please wait.");
+      return;
+    }
+  
+    if (!waitingSnapshot.empty) {
+      const opponent = waitingSnapshot.docs[0];
       try {
-        alert("wait till any player is available");
-        const addedDoc = await addDoc(collection(db, "waiting"), {
-          Name: you.docs[0].data().Playername,
-          Email: you.docs[0].data().PlayerEmail
+        alert("Connecting match...");
+        const matchRef = await addDoc(collection(db, "match"), {
+          Player1: userData.Playername,
+          Email1: userData.PlayerEmail,
+          Player2: opponent.data().Name,
+          Email2: opponent.data().Email,
         });
-
-        // Listen for match where this player is either Email1 or Email2
+  
+        localStorage.setItem("matchid", matchRef.id);
+        navigate("/game");
+        await deleteDoc(doc(db, "waiting", opponent.id));
+      } catch (e) {
+        console.error("Error creating match:", e);
+      }
+    } else {
+      // No one is waiting — add this player and start 2-min timeout
+      try {
+        alert("Waiting for a player...");
+  
+        const addedDocRef = await addDoc(collection(db, "waiting"), {
+          Name: userData.Playername,
+          Email: userData.PlayerEmail,
+          createdAt: Date.now()
+        });
+  
+        // Listen for a match involving this user
         const matchQuery = query(collection(db, "match"));
-
         const unsubscribe = onSnapshot(matchQuery, (snapshot) => {
           snapshot.forEach((docSnap) => {
             const matchData = docSnap.data();
@@ -62,37 +90,37 @@ const Home = () => {
               matchData.Email1 && matchData.Email2
             ) {
               localStorage.setItem("matchid", docSnap.id);
-              navigate("/game");
               unsubscribe();
+              clearTimeout(timeoutId); // stop the timeout when matched
+              navigate("/game");
             }
           });
         });
-
-      } catch (e) {
-        console.error("error in adding user ", e);
-      }
-    } else {
-      async function setmatch() {
-        alert("connecting match");
-        const waitingplayer = querySnapshot.docs[0];
-        try {
-          const matchRef = await addDoc(collection(db, "match"), {
-            Player1: you.docs[0].data().Playername,
-            Email1: you.docs[0].data().PlayerEmail,
-            Player2: waitingplayer.data().Name,
-            Email2: waitingplayer.data().Email,
+  
+        // ⏱ Set timeout to remove user after 2 minutes
+        const timeoutId = setTimeout(async () => {
+          // Double-check still not matched (edge case)
+          let matchFound = false;
+          const matchCheck = await getDocs(collection(db, "match"));
+          matchCheck.forEach(docSnap => {
+            const m = docSnap.data();
+            if (m.Email1 === email || m.Email2 === email) {
+              matchFound = true;
+            }
           });
-
-          localStorage.setItem("matchid", matchRef.id);
-          navigate("/game");
-          await deleteDoc(doc(db, "waiting", waitingplayer.id));
-        } catch (e) {
-          console.error("error in creating match", e);
-        }
+  
+          if (!matchFound) {
+            await deleteDoc(addedDocRef);
+            unsubscribe(); // stop listening for matches
+            alert("No player found. Please try again later.");
+          }
+        }, 2 * 60 * 1000); // 2 minutes
+      } catch (e) {
+        console.error("Error adding to waiting room:", e);
       }
-      setmatch();
     }
   }
+  
 
   return (
     <>
