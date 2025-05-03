@@ -206,6 +206,33 @@ const Game = () => {
 
   function check(e) {
     e.preventDefault();
+  
+    // Get digits from state (original digits given)
+    const originalDigits = [...digits.map(String)]; // convert to strings
+  
+    // Remove all non-digit characters from the answer
+    const usedDigits = answer.replace(/[^0-9]/g, '').split('');
+  
+    // Make a copy of originalDigits to check against
+    const available = [...originalDigits];
+  
+    // Try removing each used digit from available
+    for (let d of usedDigits) {
+      const index = available.indexOf(d);
+      if (index === -1) {
+        alert("❌ You used digits not from the given set or reused digits.");
+        return;
+      }
+      available.splice(index, 1); // remove matched digit
+    }
+  
+    // If some digits were not used
+    if (available.length > 0) {
+      alert("❌ You must use all digits exactly once.");
+      return;
+    }
+  
+    // Evaluate the answer
     try {
       const evalanswer = evaluate(answer);
       if (evalanswer == 100) {
@@ -217,7 +244,7 @@ const Game = () => {
       alert('⚠️ Invalid expression');
     }
   }
-
+  
   async function submit() {
     const matchId = localStorage.getItem('matchid');
     const playerId = localStorage.getItem('loggeduser');
@@ -265,9 +292,74 @@ const Game = () => {
     }
   }
 
-function endmatch() {
+async function endmatch() {
+const check =confirm("Do you want to end the match?")
+if(check==false){return;}
+
+
+  const email = localStorage.getItem('loggeduser');
+  const q1 = query(collection(db, 'match'), where('Email1', '==', email));
+  const Matchdoc1 = await getDocs(q1);
+  const q2 = query(collection(db, 'match'), where('Email2', '==', email));
+  const Matchdoc2 = await getDocs(q2);
+
+  if (!Matchdoc1.empty) {
+    await deleteDoc(doc(db, 'match', Matchdoc1.docs[0].id));
+  } else if (!Matchdoc2.empty) {
+    await deleteDoc(doc(db, 'match', Matchdoc2.docs[0].id));
+  }
+
+  localStorage.removeItem('gameDigits');
+  localStorage.removeItem('matchid');
+  
+  navigate('/');
+
+
   
 }
+async function draw() {
+
+  
+  
+    const email = localStorage.getItem('loggeduser');
+    const q1 = query(collection(db, 'match'), where('Email1', '==', email));
+    const Matchdoc1 = await getDocs(q1);
+    const q2 = query(collection(db, 'match'), where('Email2', '==', email));
+    const Matchdoc2 = await getDocs(q2);
+  
+    if (!Matchdoc1.empty) {
+      await deleteDoc(doc(db, 'match', Matchdoc1.docs[0].id));
+    } else if (!Matchdoc2.empty) {
+      await deleteDoc(doc(db, 'match', Matchdoc2.docs[0].id));
+    }
+  
+    localStorage.removeItem('gameDigits');
+    localStorage.removeItem('matchid');
+    
+    navigate('/');
+  
+  
+    
+  }
+
+const [timeLeft, setTimeLeft] = useState(60); 
+
+useEffect(() => {
+  if (timeLeft <= 0) {
+    alert("Time's up! No Winner");
+  draw()
+    return;
+  }
+
+  const interval = setInterval(() => {
+    setTimeLeft((prev) => prev - 1);
+  }, 1000);
+
+  return () => clearInterval(interval);
+}, [timeLeft]);
+
+
+
 
 
 
@@ -278,29 +370,59 @@ function endmatch() {
     <div className="min-h-screen w-full bg-[#0F1638] overflow-x-hidden px-4 sm:px-6 pb-10">
       <nav className="bg-gradient-to-r from-[#0F1638] to-[#09B2DE] flex flex-col lg:flex-row relative px-4 sm:px-8 py-4 shadow-md w-full max-w-[1400px] mx-auto rounded-xl mt-4 z-30 gap-4">
         <button
-          onClick={abort}
+          onClick={endmatch}
           className="bg-[#D1362B] text-white px-6 py-2 rounded-full font-semibold hover:opacity-80"
         >
           Exit
         </button>
         <h1 className="text-white text-center text-sm sm:text-lg lg:text-xl relative lg:left-[190px] sm:left-[20px] md:left-[50px]">
-          Use the given digits and apply basic mathematical operations to obtain the result as ‘100’
+          Use the given digits and apply basic mathematical operations  to obtain the result as ‘100’
         </h1>
       </nav>
+      <div className="flex gap-4 justify-center mt-6 relative top-[60px]">
+  <div className="p-4 w-[80px] h-16 bg-[#6EFE3B] rounded-lg shadow-md text-black text-2xl flex items-center justify-center">
+    {Math.floor(timeLeft / 60)}
+  </div>
+  <span className="text-white text-5xl font-bold leading-[4rem]">:</span>
+  <div className="p-4 w-[80px] h-16 bg-[#6EFE3B] rounded-lg shadow-md text-black text-2xl flex items-center justify-center">
+    {String(timeLeft % 60).padStart(2, '0')}
+  </div>
+</div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-center max-w-[1200px] mx-auto mt-10 gap-6">
-        <div className="border-4 border-green-500 rounded-lg px-6 py-3 text-green-500 text-xl min-w-[180px] text-center relative top-[180px]">
-          {user1}
-        </div>
-        <span className="text-6xl sm:text-7xl text-transparent bg-gradient-to-r from-[#6EFE3B] to-[#00CAFF] bg-clip-text font-bold relative top-[170px]">
-          VS
-        </span>
-        <div className="border-4 border-[#00CAFF] rounded-lg px-6 py-3 text-[#00CAFF] text-xl min-w-[180px] text-center relative top-[180px]">
-          {user2}
-        </div>
-      </div>
+<div className="flex flex-col sm:flex-row justify-between items-center max-w-[1200px] mx-auto mt-10 gap-6 relative top-[70px]">
+  {/* Player 1 */}
+  <div className="flex flex-col items-center gap-2">
+    <div className='w-full min-w-[180px] aspect-[1.13] rounded-[13px] border-[6px] border-[#6EFE3B] flex items-center justify-center bg-transparent'>
+      <svg width='60' height='60' viewBox='0 0 64 64' fill='#6EFE3B' xmlns='http://www.w3.org/2000/svg'>
+        <circle cx='32' cy='20' r='12' />
+        <path d='M12 52c0-11 9-16 20-16s20 5 20 16v4H12v-4z' />
+      </svg>
+    </div>
+    <div className="border-4 border-green-500 rounded-lg px-6 py-3 text-green-500 text-xl min-w-[180px] text-center">
+      {user1}
+    </div>
+  </div>
 
-      <div className="flex flex-wrap justify-center gap-4 text-3xl font-bold mt-12 relative top-[220px]">
+  {/* VS text */}
+  <span className="text-6xl sm:text-7xl text-transparent bg-gradient-to-r from-[#6EFE3B] to-[#00CAFF] bg-clip-text font-bold">
+    VS
+  </span>
+
+  {/* Player 2 */}
+  <div className="flex flex-col items-center gap-2">
+    <div className='w-full min-w-[180px] aspect-[1.13] rounded-[13px] border-[6px] border-[#00CAFF] flex items-center justify-center bg-transparent'>
+      <svg width='60' height='60' viewBox='0 0 64 64' fill='#00CAFF' xmlns='http://www.w3.org/2000/svg'>
+        <circle cx='32' cy='20' r='12' />
+        <path d='M12 52c0-11 9-16 20-16s20 5 20 16v4H12v-4z' />
+      </svg>
+    </div>
+    <div className="border-4 border-[#00CAFF] rounded-lg px-6 py-3 text-[#00CAFF] text-xl min-w-[180px] text-center">
+      {user2}
+    </div>
+  </div>
+</div>
+
+      <div className="flex flex-wrap justify-center gap-4 text-3xl font-bold mt-12 relative top-[30px]">hello
         {digits.map((digit, index) => (
           <div
             key={index}
@@ -311,29 +433,37 @@ function endmatch() {
         ))}
       </div>
 
-      <div className="flex justify-center mt-16 relative top-[190px]">
-        <form className="flex flex-col" onSubmit={check}>
-          <input
-            type="text"
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            placeholder="Give your Answer"
-            className="lg:w-[460px] sm:w-[400px] h-[56px] bg-[#BDEEFA] text-black border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-          <button
-            type="submit"
-            className="bg-[#6EFE3B] text-black px-6 py-2 rounded-full font-semibold hover:opacity-80 mt-[15px] w-[120px] relative left-[170px]"
-          >
-            Check
-          </button>
-        </form>
-        <button
-          onClick={submit}
-          className="bg-[#6EFE3B] text-black px-6 py-2 rounded-full font-semibold hover:opacity-80 mt-[15px] w-[120px] relative left-[170px]"
-        >
-          Submit
-        </button>
-      </div>
+      <div className="flex justify-center mt-16 relative top-[40px]">
+  <form
+    onSubmit={check}
+    className="flex flex-col items-center gap-4 w-full px-4 max-w-[460px]"
+  >
+    <input
+      type="text"
+      value={answer}
+      onChange={(e) => setAnswer(e.target.value)}
+      placeholder="Give your Answer"
+      className="w-[280px] sm:w-full h-[48px] bg-[#BDEEFA] text-black border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+    />
+
+    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      <button
+        type="submit"
+        className="bg-[#6EFE3B] text-black px-4 py-2 rounded-full font-semibold hover:opacity-80 w-[120px]"
+      >
+        Check
+      </button>
+      <button
+        type="button"
+        onClick={submit}
+        className="bg-[#6EFE3B] text-black px-4 py-2 rounded-full font-semibold hover:opacity-80 w-[120px]"
+      >
+        Submit
+      </button>
+    </div>
+  </form>
+</div>
+
     </div>
   );
 };

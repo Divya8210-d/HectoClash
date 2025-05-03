@@ -55,7 +55,7 @@ const Leaderboard = () => {
             <li className="hover:text-green-400 cursor-pointer" onClick={() => navigate("/leader")}>
               Leaderboard
             </li>
-            <li className="hover:text-green-400 cursor-pointer">Watch Match</li>
+   
             <li
               className="hover:text-green-400 cursor-pointer"
               onClick={async () => {

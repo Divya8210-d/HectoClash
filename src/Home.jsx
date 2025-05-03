@@ -108,13 +108,13 @@ const Home = () => {
                {/* Desktop layout: flex-row; Mobile layout: stacked */}
                <div className="flex flex-col w-full lg:flex-row lg:items-center lg:justify-end gap-2">
                  <ul className="flex flex-wrap justify-center gap-4 lg:gap-[50px] text-white lg:text-lg sm:text-base lg:mr-[50px] sm:mr-[0px]">
-                   <li className="hover:text-green-400 cursor-pointer" onClick={() => navigate("/")}>
+                   <li className="hover:text-green-400 cursor-pointer" onClick={() => navigate("/game")}>
                      Home
                    </li>
                    <li className="hover:text-green-400 cursor-pointer" onClick={() => navigate("/leader")}>
                      Leaderboard
                    </li>
-                   <li className="hover:text-green-400 cursor-pointer">Watch Match</li>
+                 
                    <li
                      className="hover:text-green-400 cursor-pointer"
                      onClick={async () => {
