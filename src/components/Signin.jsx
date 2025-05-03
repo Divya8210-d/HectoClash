@@ -1,8 +1,8 @@
 import React from 'react'
 import { NavLink,useNavigate } from 'react-router'
-import { getAuth ,signInWithEmailAndPassword} from "firebase/auth";
+import { getAuth ,signInWithEmailAndPassword,signOut} from "firebase/auth";
 import { app } from '../firebase';
-import { useState } from 'react';
+import { useState ,useEffect} from 'react';
 
 const auth = getAuth(app)
 
@@ -19,12 +19,22 @@ const Signin = () => {
   const [password, setPassword] = useState("")
 
 
-
+  useEffect(() => {
+    const loggedEmail = localStorage.getItem("loggeduser");
+    if (loggedEmail) {
+      signOut(auth).then(() => {
+        localStorage.removeItem("loggeduser");
+       
+        navigate('/');
+        alert("You have been logged out")
+      });
+    }
+  }, [navigate]);
 
 function Signin(e) {e.preventDefault()
   signInWithEmailAndPassword(auth, email, password)
 
-  .then(()=>{
+  .then(()=>{alert("You have been logged In")
   localStorage.setItem("loggeduser",email
           
          )

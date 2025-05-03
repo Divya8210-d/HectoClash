@@ -265,6 +265,15 @@ const Game = () => {
     }
   }
 
+function endmatch() {
+  
+}
+
+
+
+
+
+
   return (
     <div className="min-h-screen w-full bg-[#0F1638] overflow-x-hidden px-4 sm:px-6 pb-10">
       <nav className="bg-gradient-to-r from-[#0F1638] to-[#09B2DE] flex flex-col lg:flex-row relative px-4 sm:px-8 py-4 shadow-md w-full max-w-[1400px] mx-auto rounded-xl mt-4 z-30 gap-4">
