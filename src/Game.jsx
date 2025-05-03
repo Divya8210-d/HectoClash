@@ -181,6 +181,36 @@ const Game = () => {
 
     return () => unsubscribe();
   }, []);
+  useEffect(() => {
+    const matchId = localStorage.getItem('matchid');
+    if (!matchId) return;
+  
+    const matchRef = doc(db, 'match', matchId);
+  
+    const unsubscribe = onSnapshot(matchRef, (docSnap) => {
+      //
+      if (!docSnap.exists()) {
+        alert('Match ended by opponent.');
+        localStorage.removeItem('gameDigits');
+        localStorage.removeItem('matchid');
+        navigate('/');
+      }
+    });
+  
+    return () => unsubscribe();
+  }, []);
+  
+
+
+
+
+
+
+
+
+
+
+
 
   async function abort() {
     const email = localStorage.getItem('loggeduser');
@@ -342,7 +372,7 @@ async function draw() {
     
   }
 
-const [timeLeft, setTimeLeft] = useState(60); 
+const [timeLeft, setTimeLeft] = useState(300); 
 
 useEffect(() => {
   if (timeLeft <= 0) {
@@ -422,7 +452,7 @@ useEffect(() => {
   </div>
 </div>
 
-      <div className="flex flex-wrap justify-center gap-4 text-3xl font-bold mt-12 relative top-[30px]">hello
+      <div className="flex flex-wrap justify-center gap-4 text-3xl font-bold mt-12 relative top-[40px]">
         {digits.map((digit, index) => (
           <div
             key={index}

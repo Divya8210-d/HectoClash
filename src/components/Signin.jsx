@@ -43,7 +43,9 @@ function Signin(e) {e.preventDefault()
 
   })
 
-
+.catch((err)=>{
+  alert(err)
+})
 
 
   

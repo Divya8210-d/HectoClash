@@ -136,7 +136,7 @@ const Home = () => {
                {/* Desktop layout: flex-row; Mobile layout: stacked */}
                <div className="flex flex-col w-full lg:flex-row lg:items-center lg:justify-end gap-2">
                  <ul className="flex flex-wrap justify-center gap-4 lg:gap-[50px] text-white lg:text-lg sm:text-base lg:mr-[50px] sm:mr-[0px]">
-                   <li className="hover:text-green-400 cursor-pointer" onClick={() => navigate("/game")}>
+                   <li className="hover:text-green-400 cursor-pointer" onClick={() => navigate("/")}>
                      Home
                    </li>
                    <li className="hover:text-green-400 cursor-pointer" onClick={() => navigate("/leader")}>
@@ -204,7 +204,7 @@ const Home = () => {
           <hr className='mt-4 mx-auto w-3/4 border-t border-gray-300' />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7 p-3 mt-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 pl-1 mt-10">
           <div className="bg-gradient-to-r from-[#85d269] to-[#0F1638]   rounded-2xl shadow-md p-8 m-2 hover:shadow-xl transition duration-300">
             <div className="text-4xl mb-4 "><img src={classic} className='ml-[60px]' /></div>
             <h2 className=" font-bold mb-2 text-white text-center text-2xl">Classic 1V1</h2>
@@ -220,7 +220,7 @@ const Home = () => {
 
           <div className="bg-gradient-to-r from-[#85d269] to-[#0F1638] rounded-2xl shadow-md p-8 m-2 hover:shadow-xl transition duration-300">
             <div className="text-4xl mb-4"><img src={tournament} className='ml-[60px]' /></div>
-            <h2 className="text-2xl font-bold mb-2 text-white">Tournament</h2>
+            <h2 className="text-2xl font-bold mb-2 text-white text-center">Tournament</h2>
             <p className="text-gray-300">10 Minutes, 5 Battles, 1 Ultimate Champion.
               Big Risks. Bigger Rewards</p>
           </div>
