@@ -212,28 +212,6 @@ const Game = () => {
 
 
 
-  async function abort() {
-    const email = localStorage.getItem('loggeduser');
-    const q1 = query(collection(db, 'match'), where('Email1', '==', email));
-    const Matchdoc1 = await getDocs(q1);
-    const q2 = query(collection(db, 'match'), where('Email2', '==', email));
-    const Matchdoc2 = await getDocs(q2);
-
-    if (!Matchdoc1.empty) {
-      await deleteDoc(doc(db, 'match', Matchdoc1.docs[0].id));
-    } else if (!Matchdoc2.empty) {
-      await deleteDoc(doc(db, 'match', Matchdoc2.docs[0].id));
-    }
-
-    localStorage.removeItem('gameDigits');
-    localStorage.removeItem('matchid');
-    const winner = localStorage.getItem("currentwinner");
-    const result = query(collection(db, 'results'), where('winnerId', '==', winner));
-    const resultdoc = await getDocs(result);
-    await deleteDoc(doc(db, 'results', resultdoc.docs[0].id));
-    navigate('/');
-  }
-
   function check(e) {
     e.preventDefault();
   
@@ -302,7 +280,7 @@ const Game = () => {
           Totalpoint: increment(100),
           Matchwon: increment(1)
         });
-        setTimeout(() => abort(), 8000);
+      
       } else {
         const userdoc = query(collection(db, 'users'), where('PlayerEmail', '==', result.winnerId));
         const userdoc1 = await getDocs(userdoc);

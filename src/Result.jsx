@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import {
   getFirestore,
   collection,
   getDocs,
   query,
-  where,
+  where,deleteDoc,doc
 } from 'firebase/firestore';
 import { app } from './firebase';
 
@@ -16,6 +17,7 @@ export const Result = () => {
   const [wpoint, setWpoint] = useState('');
   const [lpoint, setLpoint] = useState('');
   const [wacc, setWacc] = useState('');
+    const navigate = useNavigate();
 
   async function result() {
     const win = localStorage.getItem('currentwinner');
@@ -52,9 +54,44 @@ export const Result = () => {
     }
   }
 
+
+  async function abort() {
+    const email = localStorage.getItem('loggeduser');
+    const q1 = query(collection(db, 'match'), where('Email1', '==', email));
+    const Matchdoc1 = await getDocs(q1);
+    const q2 = query(collection(db, 'match'), where('Email2', '==', email));
+    const Matchdoc2 = await getDocs(q2);
+
+    if (!Matchdoc1.empty) {
+      await deleteDoc(doc(db, 'match', Matchdoc1.docs[0].id));
+    } else if (!Matchdoc2.empty) {
+      await deleteDoc(doc(db, 'match', Matchdoc2.docs[0].id));
+    }
+
+    localStorage.removeItem('gameDigits');
+    localStorage.removeItem('matchid');
+    const winner = localStorage.getItem("currentwinner");
+    const result = query(collection(db, 'results'), where('winnerId', '==', winner));
+    const resultdoc = await getDocs(result);
+    await deleteDoc(doc(db, 'results', resultdoc.docs[0].id));
+    navigate('/');
+  }
+
+
+
+
+
+
+
+
+
   useEffect(() => {
     result();
   }, []);
+  useEffect(()=>{
+    setTimeout(()=>{abort()},5000)
+  })
+
 
   return (
     <div className='min-h-screen w-screen bg-[#0B0E2D] p-4 overflow-x-hidden flex flex-col items-center'>
